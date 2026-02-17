@@ -1,6 +1,6 @@
 Challenge 	Tool	Command & Logic
 Crackme1	Bash	chmod +x crackme1 && ./crackme1
-Crackme2	strings	strings crackme2 (Find super_secret_password) → ./crackme2 super_secret_password
+"rabin2 -z filename"	strings	strings crackme2 (Find super_secret_password) → ./crackme2 super_secret_password
 Crackme3	base64	strings crackme3 (Find string ending in =) → `echo "[string]"
 Crackme4	ltrace	ltrace ./crackme4 dummy → Look for strcmp("dummy", "PASSWORD") to find the secret
 Crackme5	ltrace	ltrace ./crackme5 dummy → Identify the string being compared to your input to get "Good game"
