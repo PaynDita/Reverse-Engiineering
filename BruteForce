@@ -1,0 +1,37 @@
+To make your brute-forcer scream, use the concurrent.futures module. Instead of checking one PIN at a time, this script splits the work across multiple CPU cores.
+High-Speed Multi-Threaded Brute-Forcer
+python
+import subprocess
+from concurrent.futures import ThreadPoolExecutor
+
+binary_path = "./crackme8"
+
+def check_pin(pin_int):
+    pin = f"{pin_int:04d}"
+    # Change to stdin if the binary doesn't use arguments
+    result = subprocess.run([binary_path, pin], capture_output=True, text=True)
+    
+    if "Flag" in result.stdout or "Access" in result.stdout:
+        return pin, result.stdout
+    return None
+
+print("[*] Launching multi-threaded attack...")
+
+# Adjust max_workers based on your CPU (e.g., 10-20 for TryHackMe VM)
+with ThreadPoolExecutor(max_workers=20) as executor:
+    results = executor.map(check_pin, range(10000))
+    
+    for found in results:
+        if found:
+            print(f"\n[+] SUCCESS! PIN: {found[0]}")
+            print(f"[+] OUTPUT: {found[1]}")
+            executor.shutdown(wait=False, cancel_futures=True)
+            exit()
+Use code with caution.
+
+Why this is "The Best" version:
+Parallelism: By using a ThreadPoolExecutor, you are no longer waiting for one process to finish before starting the next.
+Efficiency: The executor.map function handles the distribution of the 0000-9999 range across your threads automatically.
+Responsiveness: On a standard TryHackMe AttackBox, this will cut your wait time from minutes to seconds.
+Crucial Note for Reversing
+In real CTFs, binaries often have anti-brute-force measures (like sleep(1) calls). If the script feels slow, use Ghidra to find the sleep function and patch it to a NOP (as we did before) to remove the delay!
