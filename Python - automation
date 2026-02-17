@@ -1,0 +1,40 @@
+To automate password entry or exploit binary inputs, Python is the industry standard—specifically using the pwntools library, which is pre-installed on the TryHackMe AttackBox.
+1. Automating Password Entry (The Easy Way)
+If you just want to pass the password discovered in Crackme8 automatically, use this Python one-liner:
+bash
+python3 -c "print('-889262067')" | ./crackme8
+Use code with caution.
+
+2. The "Pro" Way: Using Pwntools
+For more complex challenges (like those involving non-printable characters or buffer overflows), a Python script is much cleaner.
+Create a file named solve.py:
+python
+from pwn import *
+
+# 1. Start the process
+p = process('./crackme8')
+
+# 2. Define the payload (The secret number found via Ghidra/GDB)
+password = b"-889262067"
+
+# 3. Send the password to the program
+p.sendline(password)
+
+# 4. Grab the output (The Flag)
+print(p.recvall().decode())
+Use code with caution.
+
+Run it: python3 solve.py
+3. Handling Buffer Overflows (The Next Level)
+In advanced reversing, you often need to send a "trash" string followed by a specific memory address to hijack the program. Python makes this easy:
+python
+# Sending 64 'A's then a "Return Address" in Little Endian format
+payload = b"A" * 64 + p64(0x400620) 
+p.sendline(payload)
+Use code with caution.
+
+Why use Python for this?
+Precision: It handles hexadecimal and binary data better than standard Bash.
+Interaction: You can use p.recvuntil(b"password:") to wait for the program to ask for input before sending it, preventing timing issues.
+Scalability: If a challenge requires you to solve 100 math problems in 2 seconds to get a flag, you must use a script.
+Pro Tip: If you're on a system without pwntools, you can always use the built-in subprocess module in Python to achieve similar results.
