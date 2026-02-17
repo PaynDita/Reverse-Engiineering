@@ -1,0 +1,18 @@
+Challenge 	Tool	Command & Logic
+Crackme1	Bash	chmod +x crackme1 && ./crackme1
+Crackme2	strings	strings crackme2 (Find super_secret_password) → ./crackme2 super_secret_password
+Crackme3	base64	strings crackme3 (Find string ending in =) → `echo "[string]"
+Crackme4	ltrace	ltrace ./crackme4 dummy → Look for strcmp("dummy", "PASSWORD") to find the secret
+Crackme5	ltrace	ltrace ./crackme5 dummy → Identify the string being compared to your input to get "Good game"
+Crackme6	Ghidra	Function compare_pwd calls my_secure_test. Read byte comparisons like 0x31 ('1'), 0x33 ('3'), etc. → Password: 1337_pwd
+Crackme7	Ghidra	Find main. Locate if (local_14 == 0x7a69). Hex 0x7a69 = Dec 31337. Run: ./crackme7 and enter 31337
+Crackme8	Ghidra	Find main. Look for atoi comparison with -0x35010ff3. Hex -0x35010ff3 = Dec -889262067. Run: ./crackme8 -889262067
+
+
+Pro Tips for the Best Results
+Permissions First: If a command fails with "Permission denied," always run chmod +x [filename].
+Ghidra Decompiler: For challenges 6–8, the Decompiler window is your best friend. It translates complex assembly into C-like code, making hardcoded passwords and "magic numbers" (like 31337) immediately visible.
+Hex to Decimal: In Ghidra, right-click any hexadecimal value (like 0x7a69) and select Convert to see its decimal or ASCII equivalent instantly.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------
