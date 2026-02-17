@@ -1,0 +1,47 @@
+Patching a binary allows you to change its "DNA" so it behaves exactly how you want—like skipping a password check entirely. 
+For Crackme7, where the program checks if your input equals 31337 (0x7a69), here is how to patch it using Ghidra or Radare2 so any input works. 
+Method 1: Using Ghidra (Visual)
+Locate the Check: Open crackme7 in Ghidra and find the main function. Look for the conditional jump instruction, typically JZ (Jump if Zero) or JNZ (Jump if Not Equal), right after the comparison.
+Edit the Instruction: Right-click the jump instruction (e.g., JZ) and select Patch Instruction (or press Ctrl+Shift+G).
+Apply a NOP: Delete the instruction and type nop (No-Operation). This tells the CPU to "do nothing" and just move to the next line of code, which is usually the success/flag block.
+Save/Export: Go to File > Export Program, select Original File as the format, and save your new "hacked" binary. 
+Method 2: Using Radare2 (Command Line)
+This is often faster for quick CTF fixes. 
+Open in Write Mode: r2 -w crackme7.
+Analyze: Type aaa to analyze the functions.
+Seek to Main: Type s main.
+Find the Jump: Type pdf (print disassembly) to find the jump instruction address (e.g., 0x00400845).
+Overwrite with NOP: Seek to that address (s 0x00400845) and type wao nop. This "NOPs out" the jump so the program never exits on a wrong password.
+Exit: Type q to quit. Now, run ./crackme7 with any random password, and it will give you the flag. 
+Why This Works
+Most "crackmes" use a simple logic:
+Original: IF (input == secret) THEN (Give Flag) ELSE (Exit).
+Patched: By turning the ELSE (Exit) jump into a NOP, the logic becomes: IF (input == secret) THEN (Give Flag) AND THEN (Continue to Give Flag anyway). 
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+To "live-patch" a binary using GDB (GNU Debugger), you change the CPU's state while the program is running. This allows you to force the program to take the "Success" path without changing the file on disk.
+We will use Crackme8 for this, which usually requires a specific integer input.
+The GDB Live-Patch Strategy
+Instead of finding the password, we will manually change the Instruction Pointer (RIP/EIP) or the Jump Flag to force the code to the flag-printing function.
+Step	Command in GDB	Logic
+1. Start GDB	gdb ./crackme8	Load the binary into the debugger.
+2. Find Main	disas main	View the assembly code to find the "success" block address.
+3. Set Breakpoint	b main	Tell GDB to stop as soon as the program starts.
+4. Run	run	Start the execution.
+5. Find Flag Logic	disas main	Look for a call to a function like print_flag or a puts with the "Access Granted" message.
+6. The Jump	set $rip = 0x[address]	The Patch: Replace [address] with the memory address of the flag-printing line.
+7. Resume	continue	The program skips the password check and executes the flag code immediately.
+Detailed "Cheat" Command for Crackme8
+If you want to bypass the integer check entirely:
+Open GDB: gdb -q ./crackme8
+Break at the check: b *main+75 (Note: The exact offset +75 might vary; look for the cmp instruction in disas main).
+Run with dummy input: run 1234
+Manipulate the Comparison:
+When GDB stops at the cmp (comparison), the Zero Flag determines if the jump happens.
+Force the flag: set $zf = 1 (This tricks the CPU into thinking the comparison was a perfect match).
+Finish: c (continue).
+Why use GDB instead of Ghidra/Radare2?
+No File Modification: You don't leave a "tampered" version of the file on the system.
+Speed: You can bypass Anti-Debugging techniques by changing values in real-time.
+Verification: You can use the GDB Dashboard to see registers change as you type.
