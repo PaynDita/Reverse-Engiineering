@@ -1,18 +1,74 @@
 Challenge 	Tool	Command & Logic
 Crackme1	Bash	chmod +x crackme1 && ./crackme1
+
 "rabin2 -z filename"	strings	strings crackme2 (Find super_secret_password) → ./crackme2 super_secret_password
-Crackme3	base64	strings crackme3 (Find string ending in =) → `echo "[string]"
-Crackme4	ltrace	ltrace ./crackme4 dummy → Look for strcmp("dummy", "PASSWORD") to find the secret
-Crackme5	ltrace	ltrace ./crackme5 dummy → Identify the string being compared to your input to get "Good game"
-Crackme6	Ghidra	Function compare_pwd calls my_secure_test. Read byte comparisons like 0x31 ('1'), 0x33 ('3'), etc. → Password: 1337_pwd
-Crackme7	Ghidra	Find main. Locate if (local_14 == 0x7a69). Hex 0x7a69 = Dec 31337. Run: ./crackme7 and enter 31337
-Crackme8	Ghidra	Find main. Look for atoi comparison with -0x35010ff3. Hex -0x35010ff3 = Dec -889262067. Run: ./crackme8 -889262067
 
 
-Pro Tips for the Best Results
-Permissions First: If a command fails with "Permission denied," always run chmod +x [filename].
-Ghidra Decompiler: For challenges 6–8, the Decompiler window is your best friend. It translates complex assembly into C-like code, making hardcoded passwords and "magic numbers" (like 31337) immediately visible.
-Hex to Decimal: In Ghidra, right-click any hexadecimal value (like 0x7a69) and select Convert to see its decimal or ASCII equivalent instantly.
+Master Reverse Engineering Cheat Sheet for the CPENT and TryHackMe. It follows the exact logical flow from opening a file to extracting the flag.
+Phase 1: The "Quick Look" (Before GDB)
+Always try the easiest tools first to save time.
 
+    strings [file]: Find plain-text passwords or flags hidden in the binary.
+    ltrace ./[file] [password]: Intercepts library calls. If it uses strcmp, it will show: strcmp("secret", "your_input").
+    file [file]: Check if it is 32-bit (uses EAX/ESP) or 64-bit (uses RAX/RSP/RDI/RSI).
 
--------------------------------------------------------------------------------------------------------------------------------------
+Phase 2: The "Map" (Ghidra)
+Use this to understand the "Logic" and find addresses.
+
+    New Project 
+
+Import File
+Double-click Green Dragon.
+Analyze (Yes)
+
+    Find main in the Symbol Tree.
+    Identify the "Decision":
+        Look for if statements or strcmp.
+        Find the Hex Address in the "Listing" window (e.g., 0x08048665).
+        Note if it's a Generator (builds a flag and prints it) or a Comparator (checks your input).
+
+Phase 3: The "Operation" (GDB)
+Use this to extract data or bypass checks while the program runs.
+Step 1: The Setup (Engine Off)
+
+    gdb ./[file]: Load the file.
+    info functions: List all functions (look for main, giveFlag, or secret).
+    disassemble main: View the assembly code to find the "Decision" point (cmp).
+
+Step 2: The Trap (Setting Breakpoints)
+
+    break *[address]: Set a breakpoint at the comparison.
+        Example: break *0x08048665 (Stop before the cmp).
+    break puts: Best for "Flag Generators" to catch the flag right before it prints.
+
+Step 3: The Start (Engine On)
+
+    run [password]: Use this if the program takes arguments.
+    run: Use this if the program asks "Enter input:" (Interactive).
+
+Step 4: The Extraction (Paused at Breakpoint)
+
+    i r (Info Registers): See the "buckets" of data.
+    x/s $rdi (64-bit): Examine the 1st argument as a string (The Secret).
+    x/s $rsi (64-bit): Examine the 2nd argument as a string (Your Input).
+    x/s *(void**)$esp (32-bit): Examine the string on the stack.
+
+Step 5: The Cheat (Modifying Logic)
+
+    set $eax = [value]: Change the register to match the secret.
+        Example: set $eax = 0x7a69 (Bypasses the "Access Denied" check).
+    c (Continue): Resume running to see the "Success" message.
+
+Phase 4: Common Terms Reference
+
+    ASCII: Number-to-Letter map (e.g., 0x41 = A).
+    CMP: The "Decision." Sets flags based on the difference between two values.
+    JNE / JE: The "Branch." Jumps to different code blocks based on the CMP result.
+    ATOI: Text-to-Number converter (turns "123" into 123).
+    RET: The "Exit." Finishes the function.
+
+Summary Table: 32-bit vs 64-bit GDB
+Feature	32-bit (x86)	64-bit (x64)
+Registers	EAX, EBX, ECX, ESP	RAX, RBX, RCX, RSP, RDI, RSI
+Arguments	On the Stack ($esp)	In Registers ($rdi, $rsi)
+Breakpoints	Addresses like 0x0804...	Addresses like 0x0040...
