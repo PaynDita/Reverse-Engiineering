@@ -1,0 +1,41 @@
+For the
+Windows Reversing Intro room on TryHackMe, the workflow shifts from Linux tools (GDB) to Windows-native industry standards like IDA Freeware and x64dbg. This room focuses on how high-level C++ code (like loops and printf) looks in x64 Windows assembly. 
+Phase 1: The Windows "Toolkit"
+
+    IDA Freeware: The "Ghidra of Windows." Best for Static Analysis. It turns a .exe into a graph of assembly or C++ code.
+    x64dbg: The "GDB of Windows." Best for Dynamic Analysis. It lets you step through a running program, set breakpoints, and change registers.
+    Capa: A tool often used alongside these to automatically identify what a program can do (e.g., "reads files", "connects to network"). 
+
+Phase 2: IDA Freeware Workflow (Static) 
+
+    Load the File: Open your .exe in IDA. Use Options > General > Auto Comments to make the assembly easier to read.
+    Identify the Main Function: Look for where the logic starts. In Windows, you often see a Prologue at the top of functions:
+        sub RSP, 28h: Allocates "Shadow Space" on the stack for function parameters.
+    Find Strings (Shift + F12): Search for "Correct" or "Flag". Double-click a string to find its XREFs (Cross-references) to see which function uses it.
+    Decompile (F5): Converts assembly into pseudo-C code. 
+
+Phase 3: The Windows "Calling Convention" (The Rules)
+Unlike Linux (which uses RDI/RSI), 64-bit Windows uses these registers for the first four function arguments: 
+
+    RCX: 1st Argument
+    RDX: 2nd Argument
+    R8: 3rd Argument
+    R9: 4th Argument
+
+Example: lea rcx, Format sets up the first parameter for a printf call. 
+Phase 4: Identifying Logic Patterns
+
+    Loops: Look for a register being incremented (like inc rcx) followed by a cmp and a jump back to an earlier address.
+    Conditionals:
+        test eax, eax: Checks if a function returned 0 (Success) or 1 (Failure).
+        jz / jnz: Jump if Zero / Jump if Not Zero. 
+
+Summary Table: Windows vs. Linux Reversing
+Feature 
+	Linux (Reversing ELF)	Windows (Intro)
+Tool	GDB / Ghidra	x64dbg / IDA Freeware
+File Format	ELF	PE (.exe, .dll)
+1st Argument	RDI	RCX
+2nd Argument	RSI	RDX
+Stack Setup	Pushes to Stack	Shadow Space (sub RSP, 28h)
+Pro-Tip for the Room: If IDA's decompiler looks messy, look at the Assembly Graph View (Spacebar). Following the arrows is often easier than reading the code for simple Windows "Hello World" or loop challenges. 
